@@ -37,3 +37,88 @@ Authroization server has configuration related to access token and refresh token
 Go to security -> API -> default audience to modify access policies and timing.
 
 To get refresh token , we need to ensure we have grant type refresh token for application and also scope is offline_access provided when retriving tokens. Refer application yaml of cloud gateway.
+
+
+
+# Kubernetes Microservices Architecture Explanation
+
+This README explains the Kubernetes YAML configuration for a microservices-based architecture consisting of the following components:
+
+## Components Overview
+
+### 1. **MySQL Database**
+
+* **StatefulSet**: Runs a MySQL pod with persistent storage.
+* **PersistentVolume (PV)** and **PersistentVolumeClaim (PVC)**: Provide 1Gi of storage.
+* **ConfigMap (mysql-initdb-cm)**: Initializes databases (`orderdb`, `paymentdb`, `productdb`).
+* **Internal Service (`mysql`)**: Used for internal cluster communication with the MySQL database.
+
+### 2. **Eureka Service Registry**
+
+* **StatefulSet**: Hosts Eureka service.
+* **Headless Service (`eureka`)**: Allows direct pod communication.
+* **NodePort Service (`eureka-lb`)**: Exposes Eureka on a node port for external access.
+* **ConfigMap (`eureka-cm`)**: Contains the Eureka URL used by other services.
+
+### 3. **Config Server**
+
+* **Deployment (`config-server-app`)**: Hosts Spring Cloud Config Server.
+* **Service (`config-server-svc`)**: Exposes config server on port 80 (maps to 9296).
+* **Environment Variables**:
+
+  * `EUREKA_SERVER_ADDRESS` from `eureka-cm`.
+
+### 4. **Cloud Gateway**
+
+* **Deployment (`cloud-gateway-app`)**: Hosts API Gateway.
+* **Service (`cloud-gateway-svc`)**: LoadBalancer service exposing gateway on port 80 (maps to 9090).
+* **Environment Variables**:
+
+  * `CONFIG_SERVER_URL` from `config-cm`.
+  * `EUREKA_SERVER_ADDRESS` from `eureka-cm`.
+
+### 5. **Order Service**
+
+* **Deployment (`order-service-app`)**: Hosts order microservice.
+* **Service (`order-service-svc`)**: Exposes service on port 80 (maps to 8082).
+* **Environment Variables**:
+
+  * `CONFIG_SERVER_URL` from `config-cm`.
+  * `DB_HOST` from `mysql-cm`.
+  * `EUREKA_SERVER_ADDRESS` from `eureka-cm`.
+
+### 6. **Product Service**
+
+* **Deployment (`product-service-app`)**: Hosts product microservice.
+* **Service (`product-service-svc`)**: Exposes service on port 80 (maps to 8082).
+* **Environment Variables**:
+
+  * `CONFIG_SERVER_URL` from `config-cm`.
+  * `DB_HOST` from `mysql-cm`.
+  * `EUREKA_SERVER_ADDRESS` from `eureka-cm`.
+
+### 7. **ConfigMaps**
+
+* `config-cm`: Holds the Config Server URL.
+* `eureka-cm`: Holds the Eureka Server address.
+* `mysql-cm`: Holds the hostname of the MySQL pod.
+
+---
+
+## Summary of Communication Flow
+
+* **Cloud Gateway** → `config-server` & `eureka`
+* **Order/Product Services** → `mysql`, `config-server`, `eureka`
+* **Eureka** → Registered by all services
+* **MySQL** ← Initialized by `mysql-initdb-cm` and used by order/product
+
+---
+
+## Access Points
+
+* **Cloud Gateway**: Public entry via LoadBalancer.
+* **Eureka Dashboard**: Exposed via NodePort.
+* **Config Server**: Internal access via `config-server-svc`.
+
+Use these service names within the cluster for service discovery and communication.
+
