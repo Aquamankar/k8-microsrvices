@@ -114,7 +114,7 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			<plugin>
+<!-- 			<plugin>
 				<groupId>com.google.cloud.tools</groupId>
 				<artifactId>jib-maven-plugin</artifactId>
 				<configuration>
@@ -126,7 +126,7 @@
 						<tags>${project.version}</tags>
 					</to>
 				</configuration>
-			</plugin>
+			</plugin> -->
 		</plugins>
 	</build>
 
